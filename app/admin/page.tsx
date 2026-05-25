@@ -1,4 +1,5 @@
 import { DashboardStats } from '@/components/admin/dashboard-stats'
+import { RevenueChart } from '@/components/admin/revenue-chart'
 import { OrdersList } from '@/components/admin/orders-list'
 
 export default function AdminDashboard() {
@@ -14,6 +15,7 @@ export default function AdminDashboard() {
       </div>
 
       <DashboardStats />
+      <RevenueChart />
       <OrdersList />
     </div>
   )

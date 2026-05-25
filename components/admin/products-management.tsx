@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import { Pencil, Trash2, Plus } from 'lucide-react'
+import { Pencil, Trash2, Plus, Search } from 'lucide-react'
 import useSWR, { mutate } from 'swr'
 import { Product, Category } from '@/lib/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -14,7 +14,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { toast } from 'sonner'
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
@@ -26,18 +25,21 @@ function mapProduct(row: Record<string, unknown>): Product {
     description: row.description as string,
     price: Number(row.price),
     category: row.category as string,
-    imageUrl: row.image_url as string,
+    imageUrl: (row.image_url as string) || '',
     videoUrl: row.video_url as string | undefined,
     available: row.available as boolean,
   }
 }
 
+const formatPrice = (price: number) =>
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(price)
+
 export function ProductsManagement() {
   const { data: rawProducts = [] } = useSWR<Record<string, unknown>[]>('/api/admin/products', fetcher)
   const { data: categories = [] } = useSWR<Category[]>('/api/categories', fetcher)
-
   const products = rawProducts.map(mapProduct)
 
+  const [search, setSearch] = useState('')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [saving, setSaving] = useState(false)
@@ -45,8 +47,9 @@ export function ProductsManagement() {
     name: '', description: '', price: 0, category: '', imageUrl: '', videoUrl: '', available: true,
   })
 
-  const formatPrice = (price: number) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(price)
+  const filtered = products.filter((p) =>
+    !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.category.includes(search.toLowerCase())
+  )
 
   const handleOpenDialog = (product?: Product) => {
     if (product) {
@@ -108,70 +111,87 @@ export function ProductsManagement() {
   }
 
   return (
-    <Card className="border-[var(--border)] bg-[var(--card)]">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-[var(--foreground)]">Produtos</CardTitle>
-        <Button
-          onClick={() => handleOpenDialog()}
-          className="bg-[var(--wine)] text-white hover:bg-[var(--wine-dark)]"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Produto
-        </Button>
-      </CardHeader>
-      <CardContent>
-        <ScrollArea className="h-[600px]">
-          <div className="space-y-4">
-            {products.map((product) => (
-              <div
-                key={product.id}
-                className="flex items-center gap-4 rounded-lg border border-[var(--border)] bg-[var(--background)] p-4"
-              >
-                <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg">
-                  <Image
-                    src={product.imageUrl || '/placeholder.jpg'}
-                    alt={product.name}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="truncate font-semibold text-[var(--foreground)]">{product.name}</h3>
-                    <Badge
-                      variant={product.available ? 'default' : 'secondary'}
-                      className={product.available ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
-                    >
-                      {product.available ? 'Disponível' : 'Indisponível'}
-                    </Badge>
-                  </div>
-                  <p className="truncate text-sm text-[var(--muted-foreground)]">{product.description}</p>
-                  <p className="text-sm font-medium text-[var(--wine)]">{formatPrice(product.price)}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch checked={product.available} onCheckedChange={() => toggleAvailability(product)} />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleOpenDialog(product)}
-                    className="border-[var(--border)]"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleDelete(product.id)}
-                    className="border-[var(--border)] text-red-600 hover:bg-red-50"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+    <>
+      <Card className="border-[var(--border)] bg-[var(--card)]">
+        <CardHeader className="space-y-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-[var(--foreground)]">
+              Produtos <span className="text-sm font-normal text-[var(--muted-foreground)]">({filtered.length})</span>
+            </CardTitle>
+            <Button
+              onClick={() => handleOpenDialog()}
+              className="bg-[var(--wine)] text-white hover:bg-[var(--wine-dark)]"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Produto
+            </Button>
           </div>
-        </ScrollArea>
-      </CardContent>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
+            <Input
+              placeholder="Buscar produto..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="border-[var(--border)] pl-9"
+            />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="max-h-[600px] space-y-4 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <p className="py-8 text-center text-[var(--muted-foreground)]">Nenhum produto encontrado</p>
+            ) : (
+              filtered.map((product) => (
+                <div
+                  key={product.id}
+                  className="flex items-center gap-4 rounded-lg border border-[var(--border)] bg-[var(--background)] p-4"
+                >
+                  <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg">
+                    <Image
+                      src={product.imageUrl || '/placeholder.jpg'}
+                      alt={product.name}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="truncate font-semibold text-[var(--foreground)]">{product.name}</h3>
+                      <Badge
+                        className={product.available ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
+                      >
+                        {product.available ? 'Disponível' : 'Indisponível'}
+                      </Badge>
+                    </div>
+                    <p className="truncate text-sm text-[var(--muted-foreground)]">{product.description}</p>
+                    <p className="text-sm font-medium text-[var(--wine)]">{formatPrice(product.price)}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch checked={product.available} onCheckedChange={() => toggleAvailability(product)} />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleOpenDialog(product)}
+                      className="border-[var(--border)]"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleDelete(product.id)}
+                      className="border-[var(--border)] text-red-600 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-lg bg-[var(--background)]">
@@ -180,7 +200,21 @@ export function ProductsManagement() {
               {editingProduct ? 'Editar Produto' : 'Novo Produto'}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+            {/* Image preview */}
+            {formData.imageUrl && (
+              <div className="relative h-40 w-full overflow-hidden rounded-lg border border-[var(--border)]">
+                <Image
+                  src={formData.imageUrl}
+                  alt="Preview"
+                  fill
+                  className="object-cover"
+                  unoptimized
+                  onError={() => {}}
+                />
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label>Nome *</Label>
               <Input
@@ -197,11 +231,12 @@ export function ProductsManagement() {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="border-[var(--border)]"
                 placeholder="Descrição do produto"
+                rows={3}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Preço *</Label>
+                <Label>Preço (R$) *</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -222,9 +257,7 @@ export function ProductsManagement() {
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.slug}>
-                        {cat.name}
-                      </SelectItem>
+                      <SelectItem key={cat.id} value={cat.slug}>{cat.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -274,6 +307,6 @@ export function ProductsManagement() {
           </div>
         </DialogContent>
       </Dialog>
-    </Card>
+    </>
   )
 }
