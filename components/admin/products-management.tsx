@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Image from 'next/image'
-import { Pencil, Trash2, Plus, Search } from 'lucide-react'
+import { Pencil, Trash2, Plus, Search, Upload, X, ImageIcon } from 'lucide-react'
 import useSWR, { mutate } from 'swr'
 import { Product, Category } from '@/lib/types'
+import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -43,13 +44,45 @@ export function ProductsManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [formData, setFormData] = useState<Partial<Product>>({
     name: '', description: '', price: 0, category: '', imageUrl: '', videoUrl: '', available: true,
   })
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const supabase = createSupabaseBrowserClient()
 
   const filtered = products.filter((p) =>
     !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.category.includes(search.toLowerCase())
   )
+
+  const handleImageUpload = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Selecione um arquivo de imagem')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Imagem deve ter no máximo 5MB')
+      return
+    }
+    setUploading(true)
+    try {
+      const ext = file.name.split('.').pop()
+      const path = `${Date.now()}.${ext}`
+      const { error } = await supabase.storage
+        .from('product-images')
+        .upload(path, file, { upsert: true })
+      if (error) throw error
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(path)
+      setFormData((prev) => ({ ...prev, imageUrl: publicUrl }))
+      toast.success('Imagem enviada!')
+    } catch {
+      toast.error('Erro ao enviar imagem')
+    } finally {
+      setUploading(false)
+    }
+  }
 
   const handleOpenDialog = (product?: Product) => {
     if (product) {
@@ -201,19 +234,76 @@ export function ProductsManagement() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
-            {/* Image preview */}
-            {formData.imageUrl && (
-              <div className="relative h-40 w-full overflow-hidden rounded-lg border border-[var(--border)]">
-                <Image
-                  src={formData.imageUrl}
-                  alt="Preview"
-                  fill
-                  className="object-cover"
-                  unoptimized
-                  onError={() => {}}
+            {/* Image section */}
+            <div className="space-y-2">
+              <Label>Foto do Produto</Label>
+
+              {/* Preview */}
+              {formData.imageUrl ? (
+                <div className="relative h-44 w-full overflow-hidden rounded-lg border border-[var(--border)]">
+                  <Image
+                    src={formData.imageUrl}
+                    alt="Preview"
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setFormData((p) => ({ ...p, imageUrl: '' }))}
+                    className="absolute right-2 top-2 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <div
+                  className="flex h-44 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-[var(--border)] bg-[var(--secondary)] text-[var(--muted-foreground)] transition-colors hover:border-[var(--wine)] hover:text-[var(--wine)]"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <ImageIcon className="h-8 w-8" />
+                  <span className="text-sm">Clique para selecionar imagem</span>
+                  <span className="text-xs">JPG, PNG, WEBP — máx 5MB</span>
+                </div>
+              )}
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) handleImageUpload(file)
+                  e.target.value = ''
+                }}
+              />
+
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={uploading}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-[var(--border)]"
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  {uploading ? 'Enviando...' : formData.imageUrl ? 'Trocar foto' : 'Upload'}
+                </Button>
+              </div>
+
+              {/* URL manual fallback */}
+              <div className="space-y-1">
+                <Label className="text-xs text-[var(--muted-foreground)]">Ou cole uma URL</Label>
+                <Input
+                  value={formData.imageUrl}
+                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                  className="border-[var(--border)] text-sm"
+                  placeholder="https://..."
                 />
               </div>
-            )}
+            </div>
 
             <div className="space-y-2">
               <Label>Nome *</Label>
@@ -262,15 +352,6 @@ export function ProductsManagement() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label>URL da Imagem</Label>
-              <Input
-                value={formData.imageUrl}
-                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                className="border-[var(--border)]"
-                placeholder="https://..."
-              />
             </div>
             <div className="space-y-2">
               <Label>URL do Vídeo (opcional)</Label>
