@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, Package, ShoppingCart, Users, Flame, ChevronLeft, LogOut, Menu, X } from 'lucide-react'
+import { LayoutDashboard, Package, ShoppingCart, Users, Flame, ChevronLeft, LogOut, Menu, X, Tag } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { cn } from '@/lib/utils'
@@ -13,6 +13,7 @@ const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/pedidos', label: 'Pedidos', icon: ShoppingCart },
   { href: '/admin/produtos', label: 'Produtos', icon: Package },
+  { href: '/admin/categorias', label: 'Categorias', icon: Tag },
   { href: '/admin/clientes', label: 'Clientes', icon: Users },
 ]
 

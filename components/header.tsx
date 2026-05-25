@@ -20,6 +20,7 @@ import type { User as SupabaseUser } from '@supabase/supabase-js'
 const navLinks = [
   { href: '/', label: 'Cardápio' },
   { href: '/carrinho', label: 'Carrinho' },
+  { href: '/meus-pedidos', label: 'Meus Pedidos' },
 ]
 
 export function Header() {
