@@ -13,11 +13,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
+import { formatCurrency } from '@/lib/currency'
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
-
-const formatPrice = (v: number) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
 
 const STATUS_STEPS = [
   'received',
@@ -171,7 +169,7 @@ export default function MeusPedidosPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-lg font-bold text-[var(--wine)]">
-                          {formatPrice(Number(order.total))}
+                          {formatCurrency(Number(order.total))}
                         </span>
                         {isExpanded ? (
                           <ChevronUp className="h-4 w-4 text-[var(--muted-foreground)]" />
@@ -208,7 +206,7 @@ export default function MeusPedidosPage() {
                                   {item.quantity}x {item.product_name}
                                 </span>
                                 <span className="text-[var(--wine)]">
-                                  {formatPrice(Number(item.product_price) * item.quantity)}
+                                  {formatCurrency(Number(item.product_price) * item.quantity)}
                                 </span>
                               </div>
                               {item.observations && (
@@ -224,20 +222,20 @@ export default function MeusPedidosPage() {
                         <div className="space-y-1 text-sm">
                           <div className="flex justify-between text-[var(--muted-foreground)]">
                             <span>Subtotal</span>
-                            <span>{formatPrice(Number(order.subtotal))}</span>
+                            <span>{formatCurrency(Number(order.subtotal))}</span>
                           </div>
                           <div className="flex justify-between text-[var(--muted-foreground)]">
                             <span>Taxa de entrega</span>
                             <span>
                               {Number(order.delivery_fee) > 0
-                                ? formatPrice(Number(order.delivery_fee))
+                                ? formatCurrency(Number(order.delivery_fee))
                                 : 'Grátis'}
                             </span>
                           </div>
                           <Separator className="my-1 bg-[var(--border)]" />
                           <div className="flex justify-between font-bold text-[var(--foreground)]">
                             <span>Total</span>
-                            <span className="text-[var(--wine)]">{formatPrice(Number(order.total))}</span>
+                            <span className="text-[var(--wine)]">{formatCurrency(Number(order.total))}</span>
                           </div>
                         </div>
 

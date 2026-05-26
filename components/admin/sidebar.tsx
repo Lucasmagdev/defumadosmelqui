@@ -33,7 +33,7 @@ export function AdminSidebar() {
     router.push('/login?admin=1')
   }
 
-  const SidebarContent = () => (
+  const renderSidebarContent = () => (
     <div className="flex h-full flex-col">
       <div className="flex h-16 items-center gap-3 border-b border-[var(--border)] px-6">
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--wine)]">
@@ -96,7 +96,7 @@ export function AdminSidebar() {
     <>
       {/* Desktop */}
       <aside className="hidden h-screen w-64 flex-shrink-0 flex-col border-r border-[var(--border)] bg-[var(--sidebar)] md:flex">
-        <SidebarContent />
+        {renderSidebarContent()}
       </aside>
 
       {/* Mobile toggle */}
@@ -119,7 +119,7 @@ export function AdminSidebar() {
             onClick={() => setMobileOpen(false)}
           />
           <aside className="fixed left-0 top-0 z-50 h-full w-64 border-r border-[var(--border)] bg-[var(--sidebar)] md:hidden">
-            <SidebarContent />
+            {renderSidebarContent()}
           </aside>
         </>
       )}

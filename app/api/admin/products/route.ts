@@ -5,6 +5,7 @@ export async function GET() {
   const { data, error } = await supabaseAdmin
     .from('products')
     .select('*')
+    .order('display_order', { ascending: true })
     .order('created_at', { ascending: true })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -13,6 +14,14 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
+
+  const { data: maxRow } = await supabaseAdmin
+    .from('products')
+    .select('display_order')
+    .order('display_order', { ascending: false })
+    .limit(1)
+    .single()
+  const nextOrder = ((maxRow?.display_order as number) ?? 0) + 1
 
   const { data, error } = await supabaseAdmin
     .from('products')
@@ -24,6 +33,8 @@ export async function POST(req: NextRequest) {
       image_url: body.imageUrl,
       video_url: body.videoUrl || null,
       available: body.available ?? true,
+      featured: body.featured ?? false,
+      display_order: nextOrder,
     })
     .select()
     .single()

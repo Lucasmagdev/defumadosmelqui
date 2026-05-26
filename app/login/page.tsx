@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -21,7 +21,7 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const isAdminMode = searchParams.get('admin') === '1'
@@ -35,12 +35,6 @@ export default function LoginPage() {
   const { register, handleSubmit, formState: { errors }, reset } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   })
-
-  useEffect(() => {
-    setActiveTab(isAdminMode ? 'admin' : 'cliente')
-    reset()
-    setError('')
-  }, [isAdminMode, reset])
 
   const onSubmit = async (data: LoginFormData) => {
     setLoading(true)
@@ -57,7 +51,7 @@ export default function LoginPage() {
       return
     }
 
-    const role = authData.user?.user_metadata?.role
+    const role = authData.user?.app_metadata?.role
 
     if (activeTab === 'admin') {
       if (role !== 'admin') {
@@ -221,5 +215,13 @@ export default function LoginPage() {
         </Tabs>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[var(--background)]" />}>
+      <LoginContent />
+    </Suspense>
   )
 }

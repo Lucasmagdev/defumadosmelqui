@@ -29,6 +29,6 @@ export async function getUser() {
   return user
 }
 
-export function isAdmin(user: { user_metadata?: { role?: string } } | null) {
-  return user?.user_metadata?.role === 'admin'
+export function isAdmin(user: { app_metadata?: Record<string, unknown> } | null) {
+  return user?.app_metadata?.role === 'admin'
 }

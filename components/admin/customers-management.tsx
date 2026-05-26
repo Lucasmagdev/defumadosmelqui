@@ -5,6 +5,9 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Search, ChevronDown, ChevronUp } from 'lucide-react'
 import useSWR from 'swr'
+import { orderStatusColors, orderStatusLabels } from '@/lib/mock-data'
+import { cn } from '@/lib/utils'
+import { formatCurrency, STORE_COUNTRY } from '@/lib/currency'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -29,10 +32,8 @@ interface EnrichedCustomer {
   totalSpent: number
   averageTicket: number
   favorites: { name: string; count: number }[]
+  orderHistory: { id: string; total: number; status: string; createdAt: string }[]
 }
-
-const formatPrice = (price: number) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(price)
 
 export function CustomersManagement() {
   const { data: customers = [] } = useSWR<EnrichedCustomer[]>('/api/admin/customers', fetcher)
@@ -100,7 +101,7 @@ export function CustomersManagement() {
                     <div className="flex items-start gap-3">
                       <div className="text-right">
                         <p className="text-xs text-[var(--muted-foreground)]">Total gasto</p>
-                        <p className="text-lg font-bold text-[var(--wine)]">{formatPrice(customer.totalSpent)}</p>
+                        <p className="text-lg font-bold text-[var(--wine)]">{formatCurrency(customer.totalSpent)}</p>
                         <p className="text-xs text-[var(--muted-foreground)]">{customer.orderCount} pedidos</p>
                       </div>
                       <Button variant="ghost" size="icon" className="text-[var(--muted-foreground)]">
@@ -119,7 +120,7 @@ export function CustomersManagement() {
                         </div>
                         <div className="rounded-lg bg-[var(--secondary)] p-3">
                           <p className="text-xs text-[var(--muted-foreground)]">Ticket Médio</p>
-                          <p className="text-xl font-bold text-[var(--foreground)]">{formatPrice(customer.averageTicket)}</p>
+                          <p className="text-xl font-bold text-[var(--foreground)]">{formatCurrency(customer.averageTicket)}</p>
                         </div>
                         <div className="rounded-lg bg-[var(--secondary)] p-3">
                           <p className="text-xs text-[var(--muted-foreground)]">Favoritos</p>
@@ -148,9 +149,35 @@ export function CustomersManagement() {
                           {customer.complement && ` - ${customer.complement}`}
                         </p>
                         <p className="text-sm text-[var(--foreground)]">
-                          {customer.neighborhood}, {customer.city} - {customer.state}
+                          {customer.neighborhood ? `${customer.neighborhood}, ` : ''}{customer.city} - {customer.state}
                         </p>
-                        <p className="text-sm text-[var(--foreground)]">CEP: {customer.zip_code}</p>
+                        <p className="text-sm text-[var(--foreground)]">{STORE_COUNTRY === 'US' ? 'ZIP Code' : 'CEP'}: {customer.zip_code}</p>
+                      </div>
+
+                      <div>
+                        <p className="mb-2 text-sm font-semibold text-[var(--foreground)]">Histórico de pedidos</p>
+                        {customer.orderHistory.length === 0 ? (
+                          <p className="text-sm text-[var(--muted-foreground)]">Nenhum pedido realizado.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {customer.orderHistory.map((order) => (
+                              <div key={order.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-white p-3 text-sm">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-[var(--foreground)]">#{order.id.slice(0, 8).toUpperCase()}</span>
+                                  <Badge className={cn('text-xs', orderStatusColors[order.status])}>
+                                    {orderStatusLabels[order.status]}
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                  <span className="text-[var(--muted-foreground)]">
+                                    {format(new Date(order.createdAt), 'dd/MM/yyyy', { locale: ptBR })}
+                                  </span>
+                                  <span className="font-semibold text-[var(--wine)]">{formatCurrency(order.total)}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

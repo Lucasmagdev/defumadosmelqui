@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -24,12 +24,16 @@ export async function middleware(request: NextRequest) {
   )
 
   const { data: { user } } = await supabase.auth.getUser()
+  const isAdminApi = request.nextUrl.pathname.startsWith('/api/admin')
+  const isAdminArea = request.nextUrl.pathname.startsWith('/admin') || isAdminApi
 
-  if (request.nextUrl.pathname.startsWith('/admin')) {
+  if (isAdminArea) {
     if (!user) {
+      if (isAdminApi) return NextResponse.json({ error: 'Nao autenticado' }, { status: 401 })
       return NextResponse.redirect(new URL('/login?admin=1', request.url))
     }
-    if (user.user_metadata?.role !== 'admin') {
+    if (user.app_metadata?.role !== 'admin') {
+      if (isAdminApi) return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
       return NextResponse.redirect(new URL('/', request.url))
     }
   }
@@ -38,5 +42,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/api/admin/:path*'],
 }

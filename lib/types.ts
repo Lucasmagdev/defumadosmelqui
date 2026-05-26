@@ -7,6 +7,8 @@ export interface Product {
   imageUrl: string
   videoUrl?: string
   available: boolean
+  featured?: boolean
+  displayOrder?: number
 }
 
 export interface CartItem {

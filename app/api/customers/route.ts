@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { getUser } from '@/lib/supabase-server'
 
 export async function POST(req: NextRequest) {
+  const user = await getUser()
+  if (!user) return NextResponse.json({ error: 'Nao autenticado' }, { status: 401 })
+
   const body = await req.json()
-  const { userId, name, phone, email, address } = body
+  const { name, phone, email, address } = body
+
+  if (!name || !phone || !address) {
+    return NextResponse.json({ error: 'Dados incompletos' }, { status: 400 })
+  }
 
   const { data: existing } = await supabaseAdmin
     .from('customers')
@@ -15,7 +23,7 @@ export async function POST(req: NextRequest) {
     await supabaseAdmin
       .from('customers')
       .update({
-        user_id: userId,
+        user_id: user.id,
         name,
         email,
         street: address.street,
@@ -34,7 +42,7 @@ export async function POST(req: NextRequest) {
   const { data, error } = await supabaseAdmin
     .from('customers')
     .insert({
-      user_id: userId,
+      user_id: user.id,
       name,
       phone,
       email,

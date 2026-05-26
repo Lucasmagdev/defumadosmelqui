@@ -14,12 +14,10 @@ import {
   Cell,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { orderStatusLabels, orderStatusColors } from '@/lib/mock-data'
+import { orderStatusLabels } from '@/lib/mock-data'
+import { formatCurrency } from '@/lib/currency'
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
-
-const formatBRL = (v: number) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(v)
 
 interface WeekDay {
   day: string
@@ -80,14 +78,14 @@ export function RevenueChart() {
                 axisLine={false}
               />
               <YAxis
-                tickFormatter={(v) => `R$${v}`}
+                tickFormatter={(v) => formatCurrency(v, { maximumFractionDigits: 0 })}
                 tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
                 tickLine={false}
                 axisLine={false}
                 width={55}
               />
               <Tooltip
-                formatter={(v: number) => [formatBRL(v), 'Receita']}
+                formatter={(v: number) => [formatCurrency(v, { maximumFractionDigits: 0 }), 'Receita']}
                 labelFormatter={(l) => `Data: ${l}`}
                 contentStyle={{
                   background: 'var(--card)',

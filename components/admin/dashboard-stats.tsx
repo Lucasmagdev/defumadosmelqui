@@ -6,11 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { orderStatusLabels, orderStatusColors } from '@/lib/mock-data'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { formatCurrency } from '@/lib/currency'
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
-
-const formatPrice = (price: number) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(price)
 
 const ACTIVE_STATUSES = ['received', 'preparing', 'smoking', 'out_for_delivery']
 
@@ -30,13 +28,13 @@ export function DashboardStats() {
     },
     {
       title: 'Receita do Dia',
-      value: data ? formatPrice(data.revenue) : '-',
+      value: data ? formatCurrency(data.revenue) : '-',
       icon: DollarSign,
       description: 'Valor total em vendas hoje',
     },
     {
       title: 'Ticket Médio',
-      value: data ? formatPrice(data.averageTicket) : '-',
+      value: data ? formatCurrency(data.averageTicket) : '-',
       icon: TrendingUp,
       description: 'Média por pedido hoje',
     },

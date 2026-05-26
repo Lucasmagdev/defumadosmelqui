@@ -15,6 +15,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       image_url: body.imageUrl,
       video_url: body.videoUrl || null,
       available: body.available,
+      featured: body.featured ?? false,
+      ...(body.displayOrder !== undefined ? { display_order: body.displayOrder } : {}),
     })
     .eq('id', id)
     .select()

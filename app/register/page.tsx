@@ -13,7 +13,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import Link from 'next/link'
+import { maskPhone, maskCep } from '@/lib/masks'
+import { STORE_COUNTRY } from '@/lib/currency'
 
+const isUnitedStates = STORE_COUNTRY === 'US'
 const registerSchema = z.object({
   name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
   phone: z.string().min(10, 'Telefone inválido'),
@@ -22,10 +25,10 @@ const registerSchema = z.object({
   street: z.string().min(3, 'Rua é obrigatória'),
   number: z.string().min(1, 'Número é obrigatório'),
   complement: z.string().optional(),
-  neighborhood: z.string().min(2, 'Bairro é obrigatório'),
+  neighborhood: isUnitedStates ? z.string().optional() : z.string().min(2, 'Bairro é obrigatório'),
   city: z.string().min(2, 'Cidade é obrigatória'),
   state: z.string().min(2, 'Estado é obrigatório'),
-  zipCode: z.string().min(8, 'CEP inválido'),
+  zipCode: z.string().min(isUnitedStates ? 5 : 8, isUnitedStates ? 'ZIP Code inválido' : 'CEP inválido'),
 })
 
 type RegisterFormData = z.infer<typeof registerSchema>
@@ -50,7 +53,7 @@ export default function RegisterPage() {
       email: data.email,
       password: data.password,
       options: {
-        data: { name: data.name, phone: data.phone, role: 'customer' },
+        data: { name: data.name, phone: data.phone },
       },
     })
 
@@ -63,11 +66,10 @@ export default function RegisterPage() {
     }
 
     if (authData.user) {
-      await fetch('/api/customers', {
+      const customerRes = await fetch('/api/customers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: authData.user.id,
           name: data.name,
           phone: data.phone,
           email: data.email,
@@ -75,13 +77,18 @@ export default function RegisterPage() {
             street: data.street,
             number: data.number,
             complement: data.complement,
-            neighborhood: data.neighborhood,
+            neighborhood: data.neighborhood || '',
             city: data.city,
             state: data.state,
             zipCode: data.zipCode,
           },
         }),
       })
+      if (!customerRes.ok && authData.session) {
+        setError('Conta criada, mas nao foi possivel salvar o endereco.')
+        setLoading(false)
+        return
+      }
     }
 
     router.push('/')
@@ -121,9 +128,13 @@ export default function RegisterPage() {
                   <Label htmlFor="phone">Telefone *</Label>
                   <Input
                     id="phone"
-                    placeholder="(11) 99999-9999"
+                    placeholder={isUnitedStates ? '(555) 555-1234' : '(11) 99999-9999'}
                     className="border-[var(--border)]"
                     {...register('phone')}
+                    onChange={(e) => {
+                      e.target.value = maskPhone(e.target.value)
+                      register('phone').onChange(e)
+                    }}
                   />
                   {errors.phone && <p className="text-sm text-red-500">{errors.phone.message}</p>}
                 </div>
@@ -174,7 +185,7 @@ export default function RegisterPage() {
                   <Label htmlFor="street">Rua *</Label>
                   <Input
                     id="street"
-                    placeholder="Rua das Flores"
+                    placeholder={isUnitedStates ? 'Main Street' : 'Rua das Flores'}
                     className="border-[var(--border)]"
                     {...register('street')}
                   />
@@ -203,10 +214,10 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="neighborhood">Bairro *</Label>
+                  <Label htmlFor="neighborhood">{isUnitedStates ? 'Bairro (opcional)' : 'Bairro *'}</Label>
                   <Input
                     id="neighborhood"
-                    placeholder="Centro"
+                    placeholder={isUnitedStates ? 'Neighborhood' : 'Centro'}
                     className="border-[var(--border)]"
                     {...register('neighborhood')}
                   />
@@ -219,7 +230,7 @@ export default function RegisterPage() {
                   <Label htmlFor="city">Cidade *</Label>
                   <Input
                     id="city"
-                    placeholder="São Paulo"
+                    placeholder={isUnitedStates ? 'Orlando' : 'São Paulo'}
                     className="border-[var(--border)]"
                     {...register('city')}
                   />
@@ -229,19 +240,23 @@ export default function RegisterPage() {
                   <Label htmlFor="state">Estado *</Label>
                   <Input
                     id="state"
-                    placeholder="SP"
+                    placeholder={isUnitedStates ? 'FL' : 'SP'}
                     className="border-[var(--border)]"
                     {...register('state')}
                   />
                   {errors.state && <p className="text-sm text-red-500">{errors.state.message}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="zipCode">CEP *</Label>
+                  <Label htmlFor="zipCode">{isUnitedStates ? 'ZIP Code' : 'CEP'} *</Label>
                   <Input
                     id="zipCode"
-                    placeholder="01234-567"
+                    placeholder={isUnitedStates ? '00000' : '01234-567'}
                     className="border-[var(--border)]"
                     {...register('zipCode')}
+                    onChange={(e) => {
+                      e.target.value = maskCep(e.target.value)
+                      register('zipCode').onChange(e)
+                    }}
                   />
                   {errors.zipCode && <p className="text-sm text-red-500">{errors.zipCode.message}</p>}
                 </div>

@@ -11,7 +11,8 @@ export async function GET() {
 
   const { data: orders } = await supabaseAdmin
     .from('orders')
-    .select('customer_id, total, order_items(*)')
+    .select('id, customer_id, total, status, created_at, order_items(*)')
+    .order('created_at', { ascending: false })
 
   const enriched = customers.map((c) => {
     const customerOrders = orders?.filter((o) => o.customer_id === c.id) || []
@@ -31,7 +32,14 @@ export async function GET() {
       .sort((a, b) => b.count - a.count)
       .slice(0, 3)
 
-    return { ...c, orderCount: customerOrders.length, totalSpent, averageTicket, favorites }
+    const orderHistory = customerOrders.map((order) => ({
+      id: order.id,
+      total: Number(order.total),
+      status: order.status,
+      createdAt: order.created_at,
+    }))
+
+    return { ...c, orderCount: customerOrders.length, totalSpent, averageTicket, favorites, orderHistory }
   })
 
   return NextResponse.json(enriched)
